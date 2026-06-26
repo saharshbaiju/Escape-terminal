@@ -1,0 +1,338 @@
+{
+  "levels": {
+    "levels": [
+      {
+        "id": "level-1",
+        "name": "The Hidden Door",
+        "objective": "Explore, observe, and uncover what is hidden.",
+        "target_seconds": 60,
+        "start_dir": "/home/recruit",
+        "key_prefix": "ESCAPE",
+        "intro": "┌─ LEVEL 1 — THE HIDDEN DOOR ─────────────────────────────────────────┐\n│ The system sealed you inside this terminal. You're trapped.          │\n│ The ACCESS KEY to the first door was left \"where ordinary users      │\n│ rarely look.\" Find it to open your way out.                          │\n│                                                                      │\n│ You are in /home/recruit. Look around. Read what's here.             │\n│ Submit a key with:   key <VALUE>      Need a nudge?   hint           │\n└──────────────────────────────────────────────────────────────────────┘\n",
+        "success": "ACCESS KEY 1 ACCEPTED ✔  The first door slides open. You move deeper.",
+        "guide": [
+          "ls",
+          "cd",
+          "cat",
+          "pwd"
+        ],
+        "hints": [
+          "Some files stay hidden from an ordinary listing. The `ls` card shows how to reveal everything.",
+          "Once something hidden appears, step inside and read it — see the `cd` and `cat` cards.",
+          "Found a key file? Read it; the value is what you submit with `key`."
+        ],
+        "bonus": {
+          "id": "l1-license",
+          "answer": "GPL",
+          "reveal": "You named the licence the GNU project popularised — pure FOSS instinct!  (+5)"
+        },
+        "files": {
+          "home": {
+            "recruit": {
+              "BONUS.txt": "★ BONUS QUESTION  (optional — worth +5 points)\nWhich software licence does amFOSS — and the whole FOSS world — love?\nType your answer as a command (just the licence's short name) to claim it.\n(Psst: a hidden dotfile in this very folder spells it out.)\n",
+              "README.txt": ">> YOU ARE TRAPPED INSIDE THIS TERMINAL <<\n=========================================\nThe session locked down with you still inside. There are THREE\ncontainment doors between you and freedom. You need DOOR KEY 1 of 3.\n\nWhoever was here last hid it \"where ordinary users rarely look\".\nHINT: a normal listing won't show everything. Some things are hidden.\n\nWhen you find it:   key <VALUE>\n",
+              "mission.txt": "Goal: ESCAPE the terminal before the session times out.\nStay curious. Read everything. The terminal rewards exploration.\n",
+              "todo.txt": "[ ] water the office plant\n[x] push to main on a Friday (oops)\n[ ] stop hiding things in dotfiles  <- whoever was locked in here never did\n",
+              ".bashrc": "# personal shell config — nothing to see here, mostly.\n# note to self: this box is licenced under the GPL, like a true FOSS project.\n# (psst: if a puzzle ever asks which licence we love, you know the answer)\n",
+              ".escape": {
+                "key.txt": "────────────────────────────────\nDOOR KEY 1:  {{KEY}}\n────────────────────────────────\nWell done. Ordinary users never type `ls -a`.\nSubmit it with:  key {{KEY}}\n"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "level-2",
+        "name": "The Forgotten Trail",
+        "objective": "Search the logs. Follow the breadcrumbs left by those before you.",
+        "target_seconds": 120,
+        "start_dir": "/var/sandbox",
+        "key_prefix": "ESCAPE",
+        "intro": "┌─ LEVEL 2 — THE FORGOTTEN TRAIL ─────────────────────────────────────┐\n│ Past the first door: the sandbox. Others were trapped here before    │\n│ you and left logs behind. DOOR KEY 2 is buried in one of them.       │\n│ Opening each file by hand takes time — there is a faster way.        │\n│                                                                      │\n│ You are in /var/sandbox.   Stuck?  type `hint`                       │\n└──────────────────────────────────────────────────────────────────────┘\n",
+        "success": "ACCESS KEY 2 ACCEPTED ✔  The second door unlocks. One barrier left.",
+        "guide": [
+          "grep",
+          "find",
+          "cat",
+          "cd"
+        ],
+        "hints": [
+          "Open the `grep` card — searching the text inside files beats opening them one by one.",
+          "Recall what every key has looked like so far, and search for that (case-insensitive)."
+        ],
+        "bonus": {
+          "id": "l2-init",
+          "answer": "git init",
+          "reveal": "Every repository starts with `git init` — you remembered the first command of all. (+5)"
+        },
+        "files": {
+          "var": {
+            "sandbox": {
+              "BONUS.txt": "★ BONUS QUESTION  (optional — worth +5 points)\nWhich single command creates a brand-new, empty git repository?\nType it exactly as you would in a real shell to claim the bonus.\n",
+              "CHANGELOG.md": "# Sandbox log\n- v0.9  containment hardened\n- v1.0  session sealed — occupants trapped (see archive/ for the trace logs)\n- note: the door keys all share a prefix. you've seen it already.\n",
+              "READ_FIRST.txt": "The trace logs of earlier escape attempts live in ./archive\nOpening each file by hand takes time — there's a faster way to look inside them.\nTip: a brand-new repo is born from one command. (bonus: type it!)\n",
+              "archive": {
+                "build.log": "[10:01] compiling module: vfs ... ok\n[10:02] compiling module: interpreter ... ok\n[10:02] WARNING ignored deprecation in legacy shim\n[10:03] build finished with 0 errors\n",
+                "auth.log": "[09:58] sshd: accepted publickey for recruit\n[09:59] sudo: recruit ran `make sandbox`\n[10:05] sshd: connection closed — session sealed\n",
+                "exit.log": "[10:10] escape sequence started by trapped session\n[10:11] verifying door credentials...\n[10:11] DOORKEY2 issued to session: {{KEY}}\n[10:12] escape halted: outer door still locked\n",
+                "notes.md": "Reminder for whoever gets this far:\nthe FINAL door key is encoded, not plaintext. you'll need to DECODE it.\nit lives in ./archive/backup. good luck getting out. - someone before you\n"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "level-3",
+        "name": "Breakout",
+        "objective": "Decode the final passphrase. Break out of the terminal.",
+        "target_seconds": 180,
+        "start_dir": "/var/sandbox/archive/backup",
+        "key_prefix": "ESCAPE",
+        "intro": "┌─ LEVEL 3 — BREAKOUT ────────────────────────────────────────────────┐\n│ The last door. Its passphrase was ENCODED so the system couldn't     │\n│ read it. Decode it to reveal the final door key, then submit it      │\n│ and walk free.                                                       │\n│                                                                      │\n│ You are in /var/sandbox/archive/backup.                              │\n└──────────────────────────────────────────────────────────────────────┘\n",
+        "success": "ACCESS KEY 3 ACCEPTED ✔",
+        "guide": [
+          "cat",
+          "base64",
+          "rot13",
+          "ls"
+        ],
+        "hints": [
+          "Open the `base64` card — this door's value is encoded, not plain text.",
+          "Encoded text that's only letters, digits, + / and maybe = is base64. Decode it to reveal the key."
+        ],
+        "bonus": {
+          "id": "l3-rot13",
+          "answer": "nzsbff",
+          "reveal": "ROT13 of 'amfoss' is 'nzsbff' — you found the secret handshake. (+5)"
+        },
+        "files": {
+          "var": {
+            "sandbox": {
+              "archive": {
+                "backup": {
+                  "BONUS.txt": "★ BONUS QUESTION  (optional — worth +5 points)\nDecode the secret handshake: what is the ROT13 of \"amfoss\"?\nTip: the `rot13` command can do it for you — then type the result.\n",
+                  "README.txt": "FINAL DOOR — ENCODED PASSPHRASE\n===============================\nThe last door key was scrambled before the lockdown so it couldn't be read.\nThe fragment here isn't the key yet — it has to be decoded first.\n\nNot sure how? type `hint` for the field guide.\n(Secret handshake for the curious: the ROT13 of \"amfoss\" unlocks a bonus.)\n",
+                  "fragment.b64": "{{KEY_PHRASE_B64}}\n",
+                  ".trash": {
+                    "old_fragment.b64": "VGhpcyBpcyBhIGRlY295LiBLZWVwIGxvb2tpbmcu\n"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "commands": {
+    "commands": [
+      {
+        "name": "ls",
+        "summary": "list the files in a directory",
+        "usage": "ls [flags] [path]",
+        "flags": [
+          "-a  show ALL entries, including hidden dotfiles",
+          "-l  long format — one per line with details"
+        ],
+        "note": "a plain `ls` hides anything whose name starts with a dot.",
+        "example": "ls -a"
+      },
+      {
+        "name": "cd",
+        "summary": "change directory — move around the filesystem",
+        "usage": "cd <path>",
+        "note": "cd .. goes up a level; cd with no path returns to the top.",
+        "example": "cd somefolder"
+      },
+      {
+        "name": "pwd",
+        "summary": "print the directory you are currently in",
+        "usage": "pwd",
+        "note": "use it whenever you feel lost.",
+        "example": "pwd"
+      },
+      {
+        "name": "cat",
+        "summary": "print a file's contents to the screen",
+        "usage": "cat <file>",
+        "note": "the quickest way to read a clue or a key file.",
+        "example": "cat notes.txt"
+      },
+      {
+        "name": "find",
+        "summary": "list every file in the tree (optionally matching a name)",
+        "usage": "find [name]",
+        "note": "handy for spotting something you haven't opened yet.",
+        "example": "find key"
+      },
+      {
+        "name": "grep",
+        "summary": "search INSIDE files for a piece of text",
+        "usage": "grep [flags] <text> [path]",
+        "flags": [
+          "-i  ignore case (match word, Word and WORD alike)",
+          "-n  show the line number of each match",
+          "-v  invert — show the lines that DON'T match",
+          "-r  search every file in the tree (recursive)"
+        ],
+        "note": "searches the text inside files, so you don't open each one by hand.",
+        "example": "grep -in word"
+      },
+      {
+        "name": "file",
+        "summary": "describe what a path is (a file or a directory)",
+        "usage": "file <path>",
+        "example": "file mystery"
+      },
+      {
+        "name": "base64",
+        "summary": "decode (or encode) base64 text",
+        "usage": "base64 [-d] <text>",
+        "flags": [
+          "-d  decode (without it, base64 ENCODes instead)"
+        ],
+        "note": "scrambled text using only letters/digits/+ / and maybe = is often base64.",
+        "example": "base64 -d aGVsbG8="
+      },
+      {
+        "name": "rot13",
+        "summary": "decode ROT13 (each letter rotated by 13)",
+        "usage": "rot13 <text>",
+        "example": "rot13 uryyb"
+      },
+      {
+        "name": "tree",
+        "summary": "show the whole directory tree at once",
+        "usage": "tree",
+        "example": "tree"
+      },
+      {
+        "name": "key",
+        "summary": "submit an access key to open the current door",
+        "usage": "key <VALUE>",
+        "example": "key ESCAPE-XXXXX"
+      },
+      {
+        "name": "copy",
+        "summary": "copy the most recently revealed key to your clipboard",
+        "usage": "copy",
+        "note": "or select it with the mouse and press Ctrl+C.",
+        "example": "copy"
+      },
+      {
+        "name": "man",
+        "summary": "show this brief guide for a command",
+        "usage": "man <command>",
+        "example": "man grep"
+      },
+      {
+        "name": "clear",
+        "summary": "clear the screen",
+        "usage": "clear"
+      },
+      {
+        "name": "help",
+        "summary": "list every available command",
+        "usage": "help"
+      }
+    ]
+  },
+  "easter_eggs": {
+    "easter_eggs": [
+      {
+        "id": "sudo",
+        "triggers": [
+          "sudo",
+          "sudo su",
+          "sudo make me a sandwich"
+        ],
+        "response": "Nice try. With great power comes great responsibility — and you are not in the sudoers file. This incident will (not) be reported."
+      },
+      {
+        "id": "rm-rf",
+        "triggers": [
+          "rm -rf /",
+          "rm -rf",
+          "rm",
+          "rm -rf /*"
+        ],
+        "response": "Whoa! Deleting the universe won't get you out. The lockdown daemon politely declined."
+      },
+      {
+        "id": "vim",
+        "triggers": [
+          "vim",
+          "vi",
+          "nvim"
+        ],
+        "response": "You opened vim. The only way out is to escape the terminal. (Hint: it's NOT :q!)"
+      },
+      {
+        "id": "emacs",
+        "triggers": [
+          "emacs"
+        ],
+        "response": "A fine operating system — shame it lacks a decent text editor. The vim users send their regards."
+      },
+      {
+        "id": "git",
+        "triggers": [
+          "git",
+          "git push",
+          "git commit",
+          "git push --force"
+        ],
+        "response": "git push --force on a Friday? That's exactly how this terminal got sealed. Step away from the keyboard."
+      },
+      {
+        "id": "whoami",
+        "triggers": [
+          "whoami"
+        ],
+        "response": "You are 'recruit' — a curious soul sealed inside this terminal, trying to escape. Existential, isn't it?"
+      },
+      {
+        "id": "fortune",
+        "triggers": [
+          "fortune"
+        ],
+        "response": "\"Given enough eyeballs, all bugs are shallow.\" — Linus's Law. Open source wins."
+      },
+      {
+        "id": "hello",
+        "triggers": [
+          "hello",
+          "hi",
+          "hello world"
+        ],
+        "response": "Hello, World! Every programmer's first words. You're among friends here."
+      },
+      {
+        "id": "coffee",
+        "triggers": [
+          "coffee",
+          "make coffee",
+          "brew"
+        ],
+        "response": "HTTP 418: I'm a teapot. No coffee for you, but plenty of keys to find."
+      },
+      {
+        "id": "amfoss",
+        "triggers": [
+          "amfoss"
+        ],
+        "response": "amFOSS — Amrita Free and Open Source Software. Code. Collaborate. Contribute. Welcome aboard."
+      },
+      {
+        "id": "panic",
+        "triggers": [
+          "kill",
+          "killall",
+          "halt",
+          "shutdown"
+        ],
+        "response": "Don't panic. Keep calm and `grep` on."
+      }
+    ]
+  }
+}

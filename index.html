@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#020a02" />
+    <meta
+      name="description"
+      content="Escape the Terminal — a beginner-friendly terminal puzzle by amFOSS. Find 3 access keys and break out."
+    />
+    <title>Escape the Terminal — amFOSS</title>
+  </head>
+  <body>
+    <!-- The CRT television. Unlike the iframe wrapper, the game renders directly
+         into #app so the green-phosphor effect applies to real DOM text. -->
+    <div class="tv">
+      <div class="screen">
+        <main id="app" class="crt-content"></main>
+        <!-- overlays never capture taps/keys -->
+        <div class="crt-tint"></div>
+        <div class="crt-scanlines"></div>
+        <div class="crt-beam"></div>
+        <div class="crt-vignette"></div>
+        <div class="crt-glass"></div>
+        <div class="crt-flicker"></div>
+      </div>
+      <div class="bezel-label">
+        amFOSS &nbsp;·&nbsp; ESCAPE-THE-TERMINAL &nbsp;·&nbsp; MODEL CRT-1
+      </div>
+      <div class="power-led"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

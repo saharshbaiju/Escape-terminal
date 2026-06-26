@@ -1,0 +1,594 @@
+/* =============================================================================
+   Escape the Terminal — web build. Green-phosphor CRT theme applied to real DOM
+   (so text glows), responsive down to small phones. Palette mirrors the TUI.
+   ============================================================================= */
+:root {
+  --bg: #020a02;
+  --phosphor: #33ff66;
+  --green-dim: #2bd957;
+  --green-soft: #7cffb0;
+  --green-pale: #adffce;
+  --yellow: #ffd54a;
+  --orange: #ff9d5c;
+  --red: #ff5555;
+  --pink: #ff7adf;
+  --cyan: #4ad9ff;
+  --border: #1f7a3f;
+  --panel: #04140a;
+  --glass-radius: 6vmin;
+  /* type scale — clamps keep it readable on phones and crisp on desktop */
+  --fs: clamp(12px, 2.7vw, 15px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Hide scrollbars everywhere (content still scrolls via wheel/touch) — keeps the
+   CRT look clean, no chunky native bar. */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge */
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* WebKit/Blink */
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 75%);
+  overflow: hidden;
+  font-family: "DejaVu Sans Mono", "SF Mono", Menlo, Consolas, monospace;
+  color: var(--phosphor);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---- the TV cabinet ---- */
+.tv {
+  position: absolute;
+  inset: 2.2vmin;
+  border-radius: 9vmin;
+  padding: 3vmin;
+  background: linear-gradient(160deg, #1b1f1b, #0c0e0c 60%, #050605);
+  box-shadow:
+    inset 0 0 3vmin rgba(0, 0, 0, 0.9),
+    0 2vmin 6vmin rgba(0, 0, 0, 0.8);
+}
+
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--glass-radius);
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow:
+    inset 0 0 6vmin rgba(0, 0, 0, 0.95),
+    inset 0 0 1.4vmin rgba(51, 255, 102, 0.18),
+    0 0 4vmin rgba(51, 255, 102, 0.1);
+}
+
+/* ---- the actual game content ---- */
+.crt-content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: var(--fs);
+  line-height: 1.4;
+  text-shadow: 0 0 0.4em rgba(51, 255, 102, 0.45);
+}
+
+/* ---- overlays (never capture taps/keys) ---- */
+.screen > div:not(.crt-content) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.crt-tint {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(51, 255, 102, 0.05),
+    rgba(0, 20, 5, 0.25) 80%
+  );
+  mix-blend-mode: screen;
+}
+.crt-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.22) 3px,
+    rgba(0, 0, 0, 0.22) 4px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+.crt-beam {
+  height: 18%;
+  background: linear-gradient(
+    to bottom,
+    rgba(51, 255, 102, 0),
+    rgba(51, 255, 102, 0.05),
+    rgba(51, 255, 102, 0)
+  );
+  animation: beam 7s linear infinite;
+}
+@keyframes beam {
+  0% {
+    transform: translateY(-20%);
+  }
+  100% {
+    transform: translateY(560%);
+  }
+}
+.crt-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 55%,
+    rgba(0, 0, 0, 0.5) 88%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+}
+.crt-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0) 35%
+  );
+}
+.crt-flicker {
+  animation: flicker 0.14s steps(2) infinite;
+}
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.03;
+    background: #000;
+  }
+}
+
+.bezel-label {
+  position: absolute;
+  bottom: 0.7vmin;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #2a2f2a;
+  font-size: 1.5vmin;
+  letter-spacing: 0.3vmin;
+}
+.power-led {
+  position: absolute;
+  bottom: 1vmin;
+  right: 4vmin;
+  width: 1.1vmin;
+  height: 1.1vmin;
+  border-radius: 50%;
+  background: var(--phosphor);
+  box-shadow: 0 0 1.4vmin var(--phosphor);
+  animation: pulse 3s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---- generic text colours ---- */
+.line {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+/* Level intro box: keep the ASCII borders intact (no wrap); main.js shrinks the
+   font so the whole box fits the screen width. */
+.line.intro {
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+  display: block;
+  line-height: 1.25;
+}
+.echo {
+  color: var(--green-soft);
+  font-weight: bold;
+}
+.k-info {
+  color: var(--phosphor);
+}
+.k-error {
+  color: var(--red);
+}
+.k-success {
+  color: var(--phosphor);
+  font-weight: bold;
+}
+.k-easter {
+  color: var(--pink);
+  font-weight: bold;
+}
+.k-hint {
+  color: var(--cyan);
+  font-style: italic;
+}
+.k-level_up {
+  color: var(--yellow);
+  font-weight: bold;
+}
+.k-win {
+  color: var(--phosphor);
+  font-weight: bold;
+}
+.k-lose {
+  color: var(--red);
+  font-weight: bold;
+}
+.k-copy {
+  color: var(--cyan);
+  font-weight: bold;
+}
+.k-options {
+  color: var(--green-soft);
+  opacity: 0.7;
+}
+
+/* =========================== START SCREEN =============================== */
+.start {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8em;
+  padding: 1.2em;
+  overflow: auto;
+  text-align: center;
+}
+.banner {
+  color: var(--phosphor);
+  font-weight: bold;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6em 1em;
+  white-space: pre;
+  font-size: clamp(5px, 1.7vw, 11px);
+  line-height: 1.1;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.boot {
+  color: var(--green-dim);
+  white-space: pre-wrap;
+  min-height: 7.5em;
+  width: min(72ch, 100%);
+  text-align: left;
+}
+.handle-label {
+  color: var(--yellow);
+  font-weight: bold;
+}
+.tagline {
+  color: var(--green-soft);
+}
+input.text {
+  background: #04140a;
+  color: #eafff0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6em 0.8em;
+  font: inherit;
+  width: min(44ch, 90%);
+  text-align: center;
+  outline: none;
+}
+input.text:focus {
+  border-color: var(--phosphor);
+}
+
+/* =========================== GAME SCREEN =============================== */
+.game {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.hud {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--green-soft);
+  padding: 0.4em 0.7em;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex-wrap: wrap;
+}
+.hud.warn {
+  color: var(--yellow);
+}
+.hud.danger {
+  color: #ff7777;
+  background: #1a0404;
+}
+.hud-info {
+  flex: 1 1 60%;
+  min-width: 0;
+  white-space: pre-wrap;
+  font-size: 0.92em;
+}
+.hud-timer {
+  flex: 0 0 auto;
+  text-align: right;
+  margin-left: auto;
+}
+.timer {
+  font-size: 1.5em;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  color: var(--phosphor);
+  font-variant-numeric: tabular-nums;
+}
+.timer.warn {
+  color: var(--yellow);
+}
+.timer.danger {
+  color: var(--red);
+}
+.timer-bar {
+  color: var(--border);
+  font-size: 0.85em;
+}
+
+.terminal {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.5em 0.7em;
+  background: var(--bg);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* field-guide drawer */
+.guide {
+  border-top: 1px solid var(--yellow);
+  background: var(--panel);
+  padding: 0.5em 0.7em;
+  max-height: 38%;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+.guide[hidden] {
+  display: none;
+}
+.guide .g-title {
+  color: var(--yellow);
+  font-weight: bold;
+}
+.guide .g-sub {
+  color: var(--green-soft);
+}
+.guide .g-name {
+  color: var(--phosphor);
+  font-weight: bold;
+}
+.guide .g-summary {
+  color: var(--green-pale);
+}
+.guide .g-usage {
+  color: var(--green-soft);
+}
+.guide .g-flag {
+  color: #9fe0bf;
+}
+.guide .g-note {
+  color: var(--green-soft);
+  opacity: 0.7;
+}
+.guide .g-example {
+  color: var(--cyan);
+  font-style: italic;
+}
+.guide .g-nudge-h {
+  color: var(--pink);
+  font-weight: bold;
+}
+.guide .g-nudge {
+  color: var(--orange);
+}
+
+/* Inline prompt — the last line inside the scrolling terminal output. */
+.prompt-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0;
+}
+.prompt-label {
+  color: var(--phosphor);
+  white-space: nowrap;
+}
+.prompt-inline input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #eafff0;
+  font: inherit;
+  padding: 0;
+  caret-color: var(--phosphor);
+}
+
+/* on-screen quick keys (mobile-first; helpful on desktop too) */
+.quickkeys {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.3em;
+  padding: 0.35em 0.5em;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.qk {
+  flex: 0 0 auto;
+  background: #04140a;
+  color: var(--green-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4em 0.7em;
+  font: inherit;
+  font-size: 0.9em;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.qk:active {
+  border-color: var(--phosphor);
+  color: var(--green-pale);
+}
+.qk.accent {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+/* =========================== RESULTS SCREEN ============================ */
+.results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8em;
+}
+.result-card {
+  border: 2px double var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 1em 1.2em;
+  width: min(84ch, 100%);
+}
+.result-title {
+  white-space: pre;
+  text-align: center;
+  font-size: clamp(5px, 1.5vw, 11px);
+  line-height: 1.1;
+  overflow-x: auto;
+}
+.result-title.win {
+  color: var(--phosphor);
+}
+.result-title.lose {
+  color: var(--red);
+  font-size: 1.1em;
+  white-space: pre-wrap;
+}
+.result-summary {
+  white-space: pre-wrap;
+  margin-top: 0.6em;
+  font-size: clamp(10px, 2.3vw, 14px);
+  overflow-x: auto;
+}
+.field-label {
+  color: var(--yellow);
+  font-weight: bold;
+  margin-top: 0.6em;
+}
+.board {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+.board th,
+.board td {
+  text-align: left;
+  padding: 0.2em 0.5em;
+  border-bottom: 1px solid #0c3d20;
+}
+.board th {
+  color: var(--green-soft);
+}
+.board tr.me td {
+  color: var(--yellow);
+  font-weight: bold;
+}
+.sync-status {
+  color: var(--cyan);
+  font-size: 0.9em;
+}
+.buttons {
+  display: flex;
+  gap: 0.6em;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.4em;
+}
+.btn {
+  background: #04140a;
+  color: var(--green-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55em 1.1em;
+  font: inherit;
+  cursor: pointer;
+}
+.btn:hover,
+.btn:focus {
+  border-color: var(--phosphor);
+  color: var(--green-pale);
+  outline: none;
+}
+.btn.error {
+  border-color: var(--red);
+  color: #ff8a8a;
+}
+
+/* =========================== RESPONSIVE =============================== */
+/* On phones, drop the heavy bezel so the screen is as big as possible. */
+@media (max-width: 640px) {
+  .tv {
+    inset: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: var(--app-h, 100dvh);
+    border-radius: 0;
+    padding: 0;
+  }
+  .screen {
+    border-radius: 0;
+  }
+  .bezel-label,
+  .power-led {
+    display: none;
+  }
+  .hud-info {
+    font-size: 0.82em;
+  }
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  .crt-beam,
+  .crt-flicker,
+  .power-led {
+    animation: none;
+  }
+}
