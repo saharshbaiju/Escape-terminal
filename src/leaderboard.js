@@ -83,6 +83,26 @@ export async function submitRun(rec) {
   }
 }
 
+// --- admin (password-gated server-side RPC, no service key in the browser) ---
+// These call SECURITY DEFINER functions that check the password in the database
+// and bypass RLS to delete. A wrong password makes the RPC error out.
+export async function adminDeleteRun(password, id) {
+  if (!supabase) return { ok: false, error: "offline" };
+  const { data, error } = await supabase.rpc("admin_delete_run", {
+    p_password: password,
+    p_id: id,
+  });
+  return { ok: !error, error: error?.message, count: data };
+}
+
+export async function adminClearAll(password) {
+  if (!supabase) return { ok: false, error: "offline" };
+  const { data, error } = await supabase.rpc("admin_clear_all", {
+    p_password: password,
+  });
+  return { ok: !error, error: error?.message, count: data };
+}
+
 // Live updates: call `cb` whenever any row changes. Returns a channel handle.
 export function subscribeChanges(cb) {
   if (!supabase) return null;

@@ -15,9 +15,9 @@
   --cyan: #4ad9ff;
   --border: #1f7a3f;
   --panel: #04140a;
-  --glass-radius: 6vmin;
+  --glass-radius: 3vmin;
   /* type scale — clamps keep it readable on phones and crisp on desktop */
-  --fs: clamp(12px, 2.7vw, 15px);
+  --fs: clamp(13px, 3.3vw, 16px);
 }
 
 * {
@@ -50,13 +50,13 @@ body {
 /* ---- the TV cabinet ---- */
 .tv {
   position: absolute;
-  inset: 2.2vmin;
-  border-radius: 9vmin;
-  padding: 3vmin;
+  inset: 0.8vmin;
+  border-radius: 3vmin;
+  padding: 0.9vmin;
   background: linear-gradient(160deg, #1b1f1b, #0c0e0c 60%, #050605);
   box-shadow:
-    inset 0 0 3vmin rgba(0, 0, 0, 0.9),
-    0 2vmin 6vmin rgba(0, 0, 0, 0.8);
+    inset 0 0 1.5vmin rgba(0, 0, 0, 0.9),
+    0 0.6vmin 2vmin rgba(0, 0, 0, 0.8);
 }
 
 .screen {
@@ -195,14 +195,19 @@ body {
   word-break: break-word;
   margin: 0;
 }
-/* Level intro box: keep the ASCII borders intact (no wrap); main.js shrinks the
-   font so the whole box fits the screen width. */
-.line.intro {
-  white-space: pre;
-  word-break: normal;
-  overflow-x: auto;
+/* Level intro: a CSS yellow box around WRAPPING text — readable, never overflows
+   sideways (long lines flow to the next line). */
+.line.intro-box {
+  white-space: pre-wrap;
+  word-break: break-word;
   display: block;
-  line-height: 1.25;
+  border: 1px solid var(--yellow);
+  border-radius: 8px;
+  padding: 0.6em 0.8em;
+  margin: 0.35em 0;
+  color: var(--yellow);
+  line-height: 1.35;
+  overflow-x: hidden;
 }
 .echo {
   color: var(--green-soft);
@@ -582,6 +587,167 @@ input.text:focus {
   .hud-info {
     font-size: 0.82em;
   }
+}
+
+/* ---- hidden admin ---- */
+.admin-hotspot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 46px;
+  height: 46px;
+  z-index: 60;
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  padding: 1em;
+}
+.modal-box {
+  width: min(40ch, 100%);
+  background: var(--panel);
+  border: 2px double var(--border);
+  border-radius: 10px;
+  padding: 1em 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  box-shadow: 0 0 3vmin rgba(51, 255, 102, 0.25);
+}
+.modal-box.wide {
+  width: min(70ch, 100%);
+}
+.modal-title {
+  color: var(--yellow);
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+.modal-msg {
+  color: var(--cyan);
+  min-height: 1.2em;
+  font-size: 0.92em;
+}
+.admin-list {
+  overflow-y: auto;
+  max-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+.admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0.35em 0.5em;
+  border: 1px solid #0c3d20;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+.btn.small {
+  padding: 0.3em 0.7em;
+  font-size: 0.85em;
+}
+
+/* admin panel (mirrors the desktop console) */
+.admin-panel .field-label {
+  margin-top: 0.5em;
+}
+.admin-deadlines {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+}
+.admin-plabel {
+  color: var(--green-soft);
+}
+.admin-param {
+  width: 5em;
+  background: #04140a;
+  color: #eafff0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3em 0.4em;
+  font: inherit;
+}
+.admin-param:focus {
+  outline: none;
+  border-color: var(--phosphor);
+}
+.admin-sub {
+  color: var(--green-soft);
+  opacity: 0.8;
+  font-size: 0.85em;
+}
+.admin-table-wrap {
+  overflow-y: auto;
+  max-height: 42vh;
+}
+.board tbody tr {
+  cursor: pointer;
+}
+.board tr.sel td {
+  background: #0c3d20;
+  color: var(--green-pale);
+}
+
+/* player search */
+.search {
+  width: 100%;
+  text-align: left;
+}
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  margin-top: 0.4em;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+.search-row {
+  display: grid;
+  grid-template-columns: 3.5em 1fr auto auto auto;
+  gap: 0.6em;
+  align-items: center;
+  padding: 0.3em 0.5em;
+  border: 1px solid #0c3d20;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+.search-row.me {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+.sr-rank {
+  color: var(--green-soft);
+  font-weight: bold;
+}
+.sr-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sr-score {
+  font-weight: bold;
+}
+.sr-out {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+.sr-time {
+  font-variant-numeric: tabular-nums;
+}
+.search-empty {
+  color: var(--green-soft);
+  opacity: 0.7;
+  font-size: 0.9em;
 }
 
 /* Respect reduced-motion preferences. */

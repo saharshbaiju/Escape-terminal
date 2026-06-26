@@ -11,6 +11,8 @@ import {
   leaderboardEnabled,
   subscribeChanges,
   unsubscribe,
+  adminDeleteRun,
+  adminClearAll,
 } from "./leaderboard.js";
 import { BANNER, BOOT_LINES, WIN_ART } from "./ui/art.js";
 
@@ -203,6 +205,10 @@ function buildQuickKeys() {
   }
 
   key("⇥ TAB", "accent", () => doComplete());
+  key("␣", "", () => insertAtCursor(" "));
+  key(".", "", () => insertAtCursor("."));
+  key("..", "", () => insertAtCursor(".."));
+  key("/", "", () => insertAtCursor("/"));
   key("-", "", () => insertAtCursor("-"));
   key("⏎ ENTER", "accent", () => submitCommand());
   return quick;
@@ -283,22 +289,30 @@ function writeLine(text, cls) {
   termOut.append(p);
 }
 
-// Render a level intro KEEPING its yellow ASCII box intact. The box is a fixed
-// ~72-col layout, so instead of wrapping (which shatters the borders) we render
-// it non-wrapping and shrink the font just enough for the whole box to fit the
-// screen width — the box stays whole on phones.
-function writeIntro(text) {
-  const pre = el("pre", "line k-level_up intro", text);
-  termOut.append(pre);
-  requestAnimationFrame(() => {
-    const avail = termOut.clientWidth;
-    const natural = pre.scrollWidth;
-    if (natural > avail && avail > 0) {
-      const base = parseFloat(getComputedStyle(pre).fontSize);
-      pre.style.fontSize = `${Math.max(6, Math.floor((base * avail) / natural))}px`;
+// Strip the ASCII box-drawing so the intro can wrap instead of overflowing.
+function stripBox(text) {
+  const out = [];
+  for (const line of text.split("\n")) {
+    const t = line.trim();
+    if (t.startsWith("┌") || t.startsWith("╔")) {
+      const title = t.replace(/[┌┐╔╗─═]/g, "").trim();
+      if (title) out.push(title);
+      continue;
     }
-    term.scrollTop = term.scrollHeight;
-  });
+    if (t.startsWith("└") || t.startsWith("╚")) continue;
+    out.push(line.replace(/^\s*[│┃]\s?/, "").replace(/\s*[│┃]\s*$/, "").replace(/\s+$/, ""));
+  }
+  while (out.length && out[0] === "") out.shift();
+  while (out.length && out[out.length - 1] === "") out.pop();
+  return out.join("\n");
+}
+
+// Render a level intro as a readable, WRAPPING yellow box (CSS border, not ASCII)
+// so the question never overflows sideways — long lines flow to the next line.
+function writeIntro(text) {
+  const box = el("pre", "line intro-box", stripBox(text));
+  termOut.append(box);
+  term.scrollTop = term.scrollHeight;
 }
 
 function show(events) {
@@ -534,7 +548,7 @@ async function submitAndLoad(g, tbody, status) {
       ? "✔ score synced — board updates live"
       : "⚠ offline — score saved locally on this device";
 
-  // Live: re-pull the board whenever anyone else finishes while this screen is up.
+  // Live: re-pull the board whenever anyone finishes while this screen is up.
   teardownResults();
   resultsChannel = subscribeChanges(async () => {
     populateBoard(tbody, await fetchLeaderboard(10), record.id);
@@ -563,6 +577,228 @@ if (window.visualViewport) {
 window.addEventListener("resize", syncViewportHeight);
 syncViewportHeight();
 
+// ============================ ADMIN (hidden) ============================
+// Access: press F2, OR tap the top-left corner 5× quickly. Password is verified
+// server-side via RPC (a wrong password just errors) — no service key here.
+const ADMIN_DUMMY_ID = "00000000-0000-0000-0000-000000000000";
+
+function openAdminLogin() {
+  if (document.getElementById("admin-modal")) return;
+  const ov = el("div", "modal");
+  ov.id = "admin-modal";
+  const box = el("div", "modal-box");
+  box.append(el("div", "modal-title", "🔒  ADMIN"));
+  const inp = el("input", "text");
+  inp.type = "password";
+  inp.placeholder = "password";
+  inp.autocomplete = "off";
+  const msg = el("div", "modal-msg");
+  const row = el("div", "buttons");
+  const ok = el("button", "btn", "Enter");
+  const cancel = el("button", "btn error", "Cancel");
+  row.append(ok, cancel);
+  box.append(inp, msg, row);
+  ov.append(box);
+  document.body.append(ov);
+  inp.focus();
+
+  const submit = async () => {
+    const pw = inp.value;
+    msg.textContent = "checking…";
+    // Verify by attempting to delete a non-existent id (0 rows, no side effect).
+    const res = await adminDeleteRun(pw, ADMIN_DUMMY_ID);
+    if (res.ok) {
+      ov.remove();
+      openAdminPanel(pw);
+    } else {
+      msg.textContent = res.error === "offline" ? "Supabase not configured" : "✖ access denied";
+      inp.value = "";
+    }
+  };
+  ok.addEventListener("click", submit);
+  cancel.addEventListener("click", () => ov.remove());
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+    if (e.key === "Escape") ov.remove();
+  });
+}
+
+// Persist admin deadline edits so a kiosk keeps them across reloads.
+const DEADLINE_KEY = "escape_terminal_deadlines";
+function saveDeadlines() {
+  try {
+    localStorage.setItem(
+      DEADLINE_KEY,
+      JSON.stringify(Object.fromEntries(LEVELS.map((l) => [l.id, l.target_seconds]))),
+    );
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+function applyDeadlineOverrides() {
+  try {
+    const o = JSON.parse(localStorage.getItem(DEADLINE_KEY) || "{}");
+    LEVELS.forEach((l) => {
+      if (o[l.id] > 0) l.target_seconds = o[l.id];
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+function openAdminPanel(pw) {
+  const ov = el("div", "modal");
+  ov.id = "admin-modal";
+  const box = el("div", "modal-box wide admin-panel");
+  box.append(el("div", "modal-title", "⚙  ADMIN CONSOLE"));
+  const status = el("div", "modal-msg");
+
+  let selectedId = null;
+  let selectedRow = null;
+
+  // --- level deadlines (edit the in-memory levels; affects the next game) ----
+  box.append(el("div", "field-label", "Level deadlines (seconds) — each is a HARD limit:"));
+  const dl = el("div", "admin-deadlines");
+  const inputs = [];
+  LEVELS.forEach((lvl, i) => {
+    dl.append(el("span", "admin-plabel", `L${i + 1}`));
+    const inp = el("input", "admin-param");
+    inp.type = "number";
+    inp.min = "5";
+    inp.value = String(lvl.target_seconds);
+    inputs.push(inp);
+    dl.append(inp);
+  });
+  const apply = el("button", "btn small", "Apply");
+  dl.append(apply);
+  box.append(dl);
+  const dlInfo = el("div", "admin-sub");
+  box.append(dlInfo);
+  const refreshDl = () => {
+    dlInfo.textContent =
+      "Hard deadlines: " +
+      LEVELS.map((l, i) => `L${i + 1} ${fmtTime(l.target_seconds)}`).join("  ·  ");
+  };
+  refreshDl();
+  apply.addEventListener("click", () => {
+    let ok = true;
+    LEVELS.forEach((l, i) => {
+      const v = parseInt(inputs[i].value, 10);
+      if (Number.isFinite(v) && v > 0) l.target_seconds = v;
+      else ok = false;
+    });
+    saveDeadlines();
+    refreshDl();
+    status.textContent = ok
+      ? "✔ deadlines applied — affect the next game on this device."
+      : "⚠ some values were invalid and skipped.";
+  });
+
+  // --- leaderboard table (tap a row, then act) ------------------------------
+  box.append(el("div", "field-label", "Leaderboard — tap a row, then act:"));
+  let adminRows = [];
+  const adminSearch = el("input", "text search");
+  adminSearch.placeholder = "filter by handle…";
+  adminSearch.autocomplete = "off";
+  adminSearch.autocapitalize = "off";
+  adminSearch.spellcheck = false;
+  adminSearch.addEventListener("input", () => renderTable());
+  box.append(adminSearch);
+  const wrap = el("div", "admin-table-wrap");
+  const table = el("table", "board");
+  const thead = el("tr");
+  ["#", "handle", "score", "outcome", "time"].forEach((h) => thead.append(el("th", "", h)));
+  table.append(thead);
+  const tbody = el("tbody");
+  table.append(tbody);
+  wrap.append(table);
+  box.append(wrap);
+
+  const row = el("div", "buttons");
+  const refresh = el("button", "btn small", "Refresh");
+  const copyBtn = el("button", "btn small", "Copy row");
+  const remove = el("button", "btn small error", "Remove selected");
+  const clear = el("button", "btn small error", "Clear ALL");
+  const close = el("button", "btn small", "Close");
+  row.append(refresh, copyBtn, remove, clear, close);
+  box.append(status, row);
+  ov.append(box);
+  document.body.append(ov);
+  close.addEventListener("click", () => ov.remove());
+
+  function renderTable() {
+    const t = adminSearch.value.trim().toLowerCase();
+    tbody.innerHTML = "";
+    adminRows.forEach((r, i) => {
+      if (t && !r.name.toLowerCase().includes(t)) return; // keep global rank (i+1)
+      const tr = el("tr");
+      tr.dataset.id = r.id;
+      [String(i + 1), r.name, String(r.score), r.outcome, fmtTime(r.total_seconds)].forEach(
+        (c) => tr.append(el("td", "", c)),
+      );
+      tr.addEventListener("click", () => {
+        tbody.querySelectorAll("tr.sel").forEach((x) => x.classList.remove("sel"));
+        tr.classList.add("sel");
+        selectedId = r.id;
+        selectedRow = r;
+      });
+      tbody.append(tr);
+    });
+  }
+
+  async function load() {
+    status.textContent = "loading…";
+    selectedId = null;
+    selectedRow = null;
+    adminRows = await fetchLeaderboard(200);
+    renderTable();
+    status.textContent = `${adminRows.length} run(s)`;
+  }
+
+  refresh.addEventListener("click", load);
+  copyBtn.addEventListener("click", async () => {
+    if (!selectedRow) return void (status.textContent = "Select a row first.");
+    const r = selectedRow;
+    await copyToClipboard(`${r.name}  ${r.score}  ${r.outcome}  ${fmtTime(r.total_seconds)}`);
+    status.textContent = "📋 row copied to clipboard";
+  });
+  remove.addEventListener("click", async () => {
+    if (!selectedId) return void (status.textContent = "Select a row first.");
+    const res = await adminDeleteRun(pw, selectedId);
+    status.textContent = res.ok ? "✔ removed" : "✖ " + (res.error || "failed");
+    load();
+  });
+  clear.addEventListener("click", async () => {
+    if (!confirm("Delete ALL scores? This cannot be undone.")) return;
+    const res = await adminClearAll(pw);
+    status.textContent = res.ok ? `cleared ${res.count} run(s)` : "✖ " + (res.error || "failed");
+    load();
+  });
+  load();
+}
+
+function wireAdminAccess() {
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "F2") {
+      e.preventDefault();
+      openAdminLogin();
+    }
+  });
+  const hot = el("div", "admin-hotspot");
+  document.body.append(hot);
+  let taps = 0;
+  let last = 0;
+  hot.addEventListener("click", () => {
+    const now = performance.now();
+    if (now - last > 1500) taps = 0;
+    last = now;
+    if (++taps >= 5) {
+      taps = 0;
+      openAdminLogin();
+    }
+  });
+}
+
 // Global shortcuts (desktop): Ctrl+R restart.
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey && (e.key === "r" || e.key === "R")) {
@@ -571,4 +807,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+applyDeadlineOverrides();
+wireAdminAccess();
 renderStart();
