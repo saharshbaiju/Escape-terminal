@@ -38,6 +38,7 @@ export const HELP_TEXT = `Available commands:
   exit                  give up and see your results
 
 Tip: press TAB to auto-complete commands and file names.
+Tip: chain commands with a pipe, e.g. \`cat fragment.b64 | base64 -d\`.
 `;
 
 // Commands offered by TAB completion (primary names, no aliases).
@@ -45,6 +46,21 @@ export const COMPLETABLE = [
   "ls", "cd", "pwd", "cat", "find", "grep", "file", "tree", "man",
   "base64", "rot13", "hint", "copy", "key", "clear", "help", "exit",
 ];
+
+// grep over piped stdin: filter lines (no file-path prefix).
+function grepLines(text, pattern, ignoreCase, invert, lineNumbers) {
+  const needle = ignoreCase ? pattern.toLowerCase() : pattern;
+  const out = [];
+  const lines = text.split(/\r\n|\r|\n/);
+  if (lines.length && lines[lines.length - 1] === "") lines.pop();
+  lines.forEach((line, i) => {
+    const hay = ignoreCase ? line.toLowerCase() : line;
+    let matched = hay.includes(needle);
+    if (invert) matched = !matched;
+    if (matched) out.push(lineNumbers ? `${i + 1}:${line}` : line);
+  });
+  return out;
+}
 
 export class Interpreter {
   constructor(fs) {
@@ -54,19 +70,46 @@ export class Interpreter {
   run(raw) {
     raw = raw.trim();
     if (!raw) return makeResult({ valid: true });
+    if (raw.includes("|")) return this._runPipeline(raw);
+    return this._runStage(raw, null);
+  }
+
+  // Feed each stage's output into the next as stdin
+  // (e.g. `cat BACKUP.enc | base64 -d`).
+  _runPipeline(raw) {
+    const stages = raw.split("|").map((s) => s.trim());
+    if (stages.some((s) => !s)) {
+      return makeResult({
+        output: "syntax error near unexpected token `|`",
+        valid: false,
+      });
+    }
+    let stdin = null;
+    let valid = true;
+    let result = makeResult({ valid: true });
+    for (const stage of stages) {
+      result = this._runStage(stage, stdin);
+      valid = valid && result.valid;
+      stdin = result.output;
+    }
+    result.valid = valid;
+    return result;
+  }
+
+  _runStage(raw, stdin) {
     let argv;
     try {
       argv = shlexSplit(raw);
     } catch {
       argv = raw.split(/\s+/);
     }
-    if (argv.length === 0) return makeResult({ valid: true });
+    if (argv.length === 0) return makeResult({ output: stdin ?? "" });
     const cmd = argv[0];
     const args = argv.slice(1);
     const handler = this._dispatch[cmd];
     if (!handler) return this._unknown(cmd);
     try {
-      return handler.call(this, args);
+      return handler.call(this, args, stdin);
     } catch (exc) {
       if (exc instanceof FSError) {
         return makeResult({ output: `${cmd}: ${exc.message}`, valid: false });
@@ -130,9 +173,11 @@ export class Interpreter {
     return makeResult({ output: this.fs.pwd() });
   }
 
-  _cmd_cat(args) {
-    if (!args.length)
+  _cmd_cat(args, stdin = null) {
+    if (!args.length) {
+      if (stdin !== null) return makeResult({ output: stdin });
       return makeResult({ output: "cat: missing file operand", valid: false });
+    }
     return makeResult({ output: args.map((a) => this.fs.cat(a)).join("\n") });
   }
 
@@ -147,7 +192,7 @@ export class Interpreter {
     return makeResult({ output: this.fs.find(pattern).join("\n") });
   }
 
-  _cmd_grep(args) {
+  _cmd_grep(args, stdin = null) {
     let ignoreCase = false;
     let invert = false;
     let lineNumbers = false;
@@ -167,6 +212,10 @@ export class Interpreter {
     if (!rest.length)
       return makeResult({ output: "grep: missing search pattern", valid: false });
     const pattern = rest[0];
+    if (stdin !== null) {
+      const matches = grepLines(stdin, pattern, ignoreCase, invert, lineNumbers);
+      return makeResult({ output: matches.length ? matches.join("\n") : "" });
+    }
     const path = rest.length > 1 ? rest[1] : "";
     const matches = this.fs.grep(pattern, path, ignoreCase, invert, lineNumbers);
     return makeResult({ output: matches.length ? matches.join("\n") : "" });
@@ -184,9 +233,10 @@ export class Interpreter {
   }
 
   // --- decoding helpers ----------------------------------------------------
-  _cmd_base64(args) {
+  _cmd_base64(args, stdin = null) {
     const decode = args.some((a) => a === "-d" || a === "--decode");
-    const payload = args.filter((a) => !a.startsWith("-")).join(" ");
+    let payload = args.filter((a) => !a.startsWith("-")).join(" ");
+    if (!payload && stdin !== null) payload = stdin.trim();
     if (!payload)
       return makeResult({ output: "base64: missing input", valid: false });
     try {
@@ -197,9 +247,11 @@ export class Interpreter {
     }
   }
 
-  _cmd_rot13(args) {
-    if (!args.length)
+  _cmd_rot13(args, stdin = null) {
+    if (!args.length) {
+      if (stdin !== null) return makeResult({ output: rot13(stdin) });
       return makeResult({ output: "rot13: missing input", valid: false });
+    }
     return makeResult({ output: rot13(args.join(" ")) });
   }
 
